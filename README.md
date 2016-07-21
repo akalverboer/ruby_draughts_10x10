@@ -29,7 +29,7 @@ Limitations
 All input and output is done with the commandline.
 Moves must be given in simple move notation, as shown in the screenshot.
 
-The evaluation in MAD100.rb is not very sophisticated. E.g. we don't distinguish between midgame and endgame. Not much selective deepening is done, no threat detection and the like. Finally MAD100 might benefit from a more advanced move ordering, including such things as killer move.
+The evaluation in MAD100.rb is not very sophisticated. E.g. we don't distinguish between midgame and endgame. Not much selective deepening is done, no threat detection and the like. Finally MAD100.rb might benefit from a more advanced move ordering, including such things as killer move.
 
 Why MAD100?
 ===========
