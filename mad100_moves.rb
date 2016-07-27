@@ -91,7 +91,6 @@ Move = Struct.new(:steps, :takes)      # steps/takes are arrays of numbers
 
 def self.gen_bmoves(board, i)    # PRIVATE ============================
    # Generator for moves or one-take captures for square i
-   # If test == true: output is boolean (capture detected or not)
    moves, captures = [], []     # output lists
    p = board[i]
    return [[].each, :empty] if not p.isupper?     # only moves for player; return empty generator
@@ -136,14 +135,14 @@ def self.gen_bmoves(board, i)    # PRIVATE ============================
    end  # Directions
 
    # Prepare output. Output is tuple: [generator, type]
-   # - generator of basic moves
+   # - array of basic moves
    # - type symbol: :capture, :move, :empty
    if captures != [] then           # first try captures !!
-      [captures.each, :capture]
+      [captures, :capture]
    elsif moves != [] then 
-      [moves.each, :move]
+      [moves, :move]
    else
-      [[].each, :empty]     # empty generator
+      [[], :empty]     # empty generator
    end
 end     # gen_bmoves ======================================
 
