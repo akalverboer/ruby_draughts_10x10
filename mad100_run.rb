@@ -300,6 +300,21 @@ def main
             puts '|_________________________________________________________________  '
             puts 
 
+         when /^test0/ 
+            # *** test Performance ***
+            # Most critical for speed is move generation, so we perform a test.
+            lstring = ''
+
+            t0 = Time.now
+            for i in 1..3000
+               Moves.gen_moves(pos).each do |lmove|
+                  lstring += Play.mrender_move(color, lmove) + '  '
+               end
+            end
+            t1 = Time.now
+
+            puts "Time elapsed for test: " + (t1 - t0).inspect
+
          else
             puts "   Error (unkown command): " + comm
 
