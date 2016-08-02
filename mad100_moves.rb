@@ -87,6 +87,8 @@ Directions = {
     'K' => [NE, SE, SW, NW]     # king can move in all directions
 }
 
+Directions = [NE, SE, SW, NW]
+
 Move = Struct.new(:steps, :takes)      # steps/takes are arrays of numbers 
 
 def self.gen_bmoves(board, i)    # PRIVATE ============================
@@ -94,8 +96,9 @@ def self.gen_bmoves(board, i)    # PRIVATE ============================
    moves, captures = [], []     # output lists
    p = board[i]
    return [[].each, :empty] if not p.isupper?     # only moves for player; return empty generator
-   Directions[p].each do |d|
-      if p == 'P' then
+
+   if p == 'P' then
+      Directions.each do |d|
          q = board[d[i]]
          next if q == '0'       # direction empty; try next direction
          if q == '.' and (d[i] == NE[i] or d[i] == NW[i]) then
@@ -111,7 +114,9 @@ def self.gen_bmoves(board, i)    # PRIVATE ============================
             end
          end
       end
-      if p == 'K' then
+   end
+   if p == 'K' then
+      Directions.each do |d|
          take = nil
          diagonal(i, d).each do |j|     # diagonal squares from i in direction d
             q = board[j]
