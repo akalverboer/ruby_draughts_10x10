@@ -66,14 +66,6 @@ def main
             puts "Bye"
             break
 
-         when /^legal/
-            Play.mprint_pos(color, pos)
-            lstring = ''
-            Moves.gen_moves(pos).each do |lmove|
-               lstring += Play.mrender_move(color, lmove) + '  '
-            end
-            puts 'Legal moves: ' + lstring
-
          when /^nodes/
             # Set max_nodes to search
             if comm.split(" ").size == 1
@@ -112,6 +104,14 @@ def main
             # Evaluate position
             Play.mprint_pos(color, pos)
             puts "Score position: " + pos.score.to_s
+
+         when /^legal/
+            Play.mprint_pos(color, pos)
+            lstring = ''
+            Moves.gen_moves(pos).each do |lmove|
+               lstring += Play.mrender_move(color, lmove) + '  '
+            end
+            puts 'Legal moves: ' + lstring
 
          when /^go/
             if comm.split.size == 1 then
