@@ -127,23 +127,23 @@ def self.render_pv(origc, pos, tp)
     color = origc
     res.push '|'
     entry = Entry_pv.new(nil, nil, nil)  # default
+    last_score = 0
     gen_pv(pos, tp).each do |entry|
-       ## res.push entry.pos.score.to_s
-
        if entry.move == nil then
           res.push 'null'
+       else
+          move = mrender_move(color, entry.move)
+          res.push move
+          last_score = entry.score
        end
-       move = mrender_move(color, entry.move)
-       res.push move
 
        res.push '|'
        color = 1-color
     end
 
     res.push " final score: "
-    if entry.score != nil then
-       res.push entry.score.abs.to_s
-    end
+    res.push last_score.to_s
+
     return res.join(' ')
 end
 
