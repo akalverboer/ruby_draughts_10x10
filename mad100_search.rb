@@ -131,6 +131,10 @@ def self.search(pos, maxn=MAX_NODES)
     end
 
     @nodes = 0
+    if @tp.size > (TABLE_SIZE / 2) then
+       @tp = Hash.new(nil)            # empty hash table when half full
+    end
+    
     puts "thinking ....   max nodes: #{maxn}" 
     puts '%8s %8s %8s %8s' %['depth', 'nodes', 'gamma', 'score']   # header
 
@@ -255,6 +259,10 @@ def self.search_pvf(pos, maxn=MAX_NODES)
    # Iterative deepening of forced variation sequence.
    @xnodes = 0
    player = 0            # 0 = starting player; 1 = opponent 
+   if @tpf.size > (TABLE_SIZE / 2) then
+       @tpf = Hash.new(nil)            # empty hash table when half full
+   end
+   
    puts "thinking ....   max nodes: #{maxn}" 
    puts '%8s %8s %8s' %['depth', 'nodes', 'score']   # header
 
@@ -394,6 +402,10 @@ end
 def self.search_ab(pos, maxn=MAX_NODES)
    # Iterative deepening alpha-beta search enhanced with aspiration windows
    @ynodes = 0
+   if @tpab.size > (TABLE_SIZE / 2) then
+       @tpab = Hash.new(nil)            # empty hash table when half full
+   end
+
    lower, upper = -MATE_VALUE, MATE_VALUE
    valWINDOW = 50         # ASPIRATION WINDOW: tune for optimal results
 
