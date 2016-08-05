@@ -70,7 +70,7 @@ SW = [0] + SW_ext.split(' ').map{|s| s.to_i} + [0]
 
 def self.diagonal(i, d)
    # Generator for squares from i in direction d
-   Enumerator.new do |enum| 
+   Enumerator.new do |enum|
      nxt = i
      stop = d[nxt] == 0
      while not(stop)
@@ -81,21 +81,18 @@ def self.diagonal(i, d)
    end
 end
 
-# Allowed directions for piece and king
-Directions = {
-    'P' => [NE, SE, SW, NW],    # piece can move forward but captures in all directions
-    'K' => [NE, SE, SW, NW]     # king can move in all directions
-}
-
 Directions = [NE, SE, SW, NW]
 
-Move = Struct.new(:steps, :takes)      # steps/takes are arrays of numbers 
+Move = Struct.new(:steps, :takes)      # steps/takes are arrays of numbers
 
-def self.gen_bmoves(board, i)    # PRIVATE ============================
-   # Generator for moves or one-take captures for square i
-   moves, captures = [], []     # output lists
+$moveTable = Hash.new(nil)   # dict to remember legal moves of a position for better performance
+$MOVETABLE_SIZE = 1000000
+
+def self.bmoves_from_square(board, i)
+   # List of moves (non-captures) for square i
+   moves = []     # output list
    p = board[i]
-   return [[].each, :empty] if not p.isupper?     # only moves for player; return empty generator
+   return [] if not p.isupper?    # only moves for player; return empty list
 
    if p == 'P' then
       Directions.each do |d|
@@ -105,9 +102,40 @@ def self.gen_bmoves(board, i)    # PRIVATE ============================
             # move detected; save and continue
             moves.push Move.new([ i, d[i] ], [])
          end
+      end
+   end
+   if p == 'K' then
+      Directions.each do |d|
+         take = nil
+         diagonal(i, d).each do |j|     # diagonal squares from i in direction d
+            q = board[j]
+            break if q == '0'         # stay inside the board; stop with this diagonal
+            break if q != '.'         # stop this direction if next square not empty
+            if q == '.' then
+               # move detected; save and continue
+               moves.push Move.new([i,j], [])
+            end
+         end
+      end
+   end  # Directions
+   return moves
+end     # bmoves_from_square ======================================
+
+def self.bcaptures_from_square(board, i)
+   # List of one-take captures for square i
+   captures = []     # output list
+   p = board[i]
+   return [] if not p.isupper?   # only captures for player; return empty list
+
+   if p == 'P' then
+      Directions.each do |d|
+         q = board[d[i]]        # first diagonal square
+         next if q == '0'       # direction empty; try next direction
+         next if q == '.' or q.isupper?
+
          if q.islower? then
             r = board[ d[d[i]] ]     # second diagonal square
-            next if r == '0'     # no second diagonal square; try next direction
+            next if r == '0'         # no second diagonal square; try next direction
             if r == '.' then
                # capture detected; save and continue
                captures.push Move.new([ i, d[d[i]] ], [ d[i] ])
@@ -120,14 +148,10 @@ def self.gen_bmoves(board, i)    # PRIVATE ============================
          take = nil
          diagonal(i, d).each do |j|     # diagonal squares from i in direction d
             q = board[j]
-            break if q.isupper?       # own piece on this diagonal; stop
-            break if q == '0'         # stay inside the board; stop with this diagonal
-            if q == '.' and take == nil then
-               # move detected; save and continue
-               moves.push Move.new([i,j], [])
-            end
+            break if q.isupper?         # own piece on this diagonal; stop
+            break if q == '0'           # stay inside the board; stop with this diagonal
             if q.islower? and take == nil then
-               take = j      # square of q
+               take = j      # square number of q
                next
             end
             break if q.islower? and take != nil
@@ -139,144 +163,126 @@ def self.gen_bmoves(board, i)    # PRIVATE ============================
       end
    end  # Directions
 
-   # Prepare output. Output is tuple: [generator, type]
-   # - array of basic moves
-   # - type symbol: :capture, :move, :empty
-   if captures != [] then           # first try captures !!
-      [captures, :capture]
-   elsif moves != [] then 
-      [moves, :move]
+   return captures
+end     # bcaptures_from_square ======================================
+
+def self.basicMoves(board)
+   # Return list of basic moves of board; either captures or normal moves
+   # Basic moves are normal moves or one-take captures
+   bmoves_of_board, bcaptures_of_board = [], []
+   hasCapture = false
+   board.each_with_index do | p, i|
+      next if not p.isupper?
+      bcaptures = bcaptures_from_square(board, i)
+      hasCapture = true if bcaptures.size > 0
+      if hasCapture then
+         bcaptures_of_board = bcaptures_of_board + bcaptures
+      else
+         bmoves_of_board = bmoves_of_board + bmoves_from_square(board, i)
+         bcaptures_of_board = bcaptures_of_board + bcaptures
+      end
+   end
+   if bcaptures_of_board.size > 0 then
+      return bcaptures_of_board
    else
-      [[], :empty]     # empty generator
+      return bmoves_of_board
    end
-end     # gen_bmoves ======================================
+end   # basicMoves
 
-def self.gen_extend_move(board, move)   # PRIVATE ===================
-   # move is capture and maybe incomplete; try to extend it with basic captures
-   # return generator of extended captures
+def self.searchCaptures(board)
+   # Capture construction by extending incomplete captures with basic captures
+   $captures = []       # result list of captures
+   $max_takes = 0       # max number of taken pieces
 
-   return [].each if move.steps.size == 0   # empty move; return empty generator
-   return [].each if move.takes.size == 0   # no capture; return empty generator
-   n_from = move.steps[0]
-   n_to = move.steps[-1]     # last step
+   def self.boundCaptures(board, capture, depth )
+      # Recursive construction of captures.
+      # - board: current board during capture construction
+      # - capture: incomplete capture used to extend with basic captures
+      # - depth: not used
+      bcaptures = bcaptures_from_square(board, capture.steps[-1])   # new extends of capture
 
-   new_board = board.dup   # clone the board after doing the capture without taking the pieces
-   new_board[n_from] = '.'
-   new_board[n_to] = board[n_from]
+      completed = true
+      bcaptures.each do |bcapture|
 
+         next if bcapture.takes.size == 0                # no capture; nothing to extend
+         next if capture.takes.include? bcapture.takes[0]   # do not capture the same piece twice
+         n_from = bcapture.steps[0]
+         n_to = bcapture.steps[-1]     # last step
 
-   Enumerator.new do |enum|
-      gen_bmoves(new_board, n_to)[0].each do | bmove|
-         new_move = Move.new(move.steps.dup, move.takes.dup)  # make copy of move and extend it
-         next if bmove.takes == []                      # no capture; nothing to extend
-         next if move.takes.include? bmove.takes[0]     # do not capture the same piece
-         new_move.steps.push bmove.steps[1]
-         new_move.takes.push bmove.takes[0]
-         enum.yield new_move
+         new_board = board.dup   # clone the board and do the capture without taking pieces
+         new_board[n_from] = '.'
+         new_board[n_to] = board[n_from]
+
+         new_capture = Move.new(capture.steps.dup, capture.takes.dup)  # make copy of capture and extend it
+         new_capture.steps.push bcapture.steps[1]
+         new_capture.takes.push bcapture.takes[0]
+
+         extended = false
+         result = boundCaptures(new_board, new_capture, depth + 1)   # RECURSION
       end
-   end
 
-end  # gen_extend_move ============================================
-
-def self.gen_moves_of_square(board, i)   # PRIVATE ====================
-   # Make array (generator) with completed moves of square i
-
-   def self.OLD_gen_extend_next_OLD(board, move)
-      # Make generator of all moves that can extend given move (only for captures, use recursion)
-      # If move is not a capture, return generator of given move parameter
-      Enumerator.new do |enum|
-         thing_generated = false
-         gen_extend_move(board, move).each do |new_move|
-            thing_generated = true
-            gen_extend_next(board, new_move).each do |val|
-               enum.yield val   # val is enumerator
-            end
-         end
-         if not thing_generated then
-            ##print 'ready   ', move
-            enum.yield move
-         end
+      if completed then
+         # Update global variables
+         $captures.push capture
+         $max_takes = capture.takes.size if capture.takes.size > $max_takes
       end
-   end   # old_gen_extend_next_old
 
-   def self.gen_extend_next(board, move)
-      # SAME AS ABOVE BUT: enumerator replaced by array moveList.
-      # No performance improvement. For clarity we use this version.
-      # Make generator of all moves that can extend given move (only for captures, use recursion)
-      # If move is not a capture, return generator of given move parameter
-      moveList = []
-         thing_generated = false
-         gen_extend_move(board, move).each do |new_move|
-            thing_generated = true
-            gen_extend_next(board, new_move).each do |emove|
-                moveList.push emove
-            end
-         end
-         if not thing_generated then
-            ##print 'ready   ', move
-             moveList.push move
-         end
-      return moveList
-   end   # gen_extend_next
+      return 0
+   end  # boundCaptures
 
-   Enumerator.new do |enum|
-      gen_bmoves(board, i)[0].each do |bmove|
-         # CHANGE: some performance improvement 16-07-2016
-         if bmove.takes.size == 0 then
-            enum.yield bmove
-         else
-            # bmove is capture; make move complete 
-            gen_extend_next(board, bmove).each do |move|
-               enum.yield move
-            end
-         end
-      end
+   # ============================================================================
+   depth = 0
+   bmoves = basicMoves(board)
+   bmoves.each do |bmove|
+      break if bmove.takes.size == 0    # only moves, no captures; nothing to extend
+      n_from = bmove.steps[0]
+      n_to = bmove.steps[-1]     # last step
+
+      new_board = board.dup      # clone the board and do the capture without taking pieces
+      new_board[n_from] = '.'
+      new_board[n_to] = board[n_from]
+      result = boundCaptures(new_board, bmove, depth)
    end
 
-end   # gen_moves_of_square ============================================
-
-def self.gen_moves_of_board(board)  # PRIVATE ============================
-   # Generate all possible moves for white; not yet legal moves!! 
-   Enumerator.new do |enum|
-      board.each_with_index do | p, i|
-         next if not p.isupper?       # p == 'P' or p == 'K' 
-         gen_moves_of_square(board, i).each do |move|
-            enum.yield move
-         end
-      end
-   end
-end   # gen_moves_of_board =============================================
-
-def self.gen_moves(pos)       # PUBLIC
-   # Returns generator of all legal moves of a board for player white (capital letters).
-   # Move is a named tuple with array of steps and array of takes
-
-   moveList = []
-   max_takes = 0
-   gen_moves_of_board(pos.board).each do |move|
-      max_takes = [max_takes, move.takes.size].max
-      moveList.push move
+   ##puts "Max takes: " + $max_takes.to_s
+   result = $captures.select do |capture|
+      capture.takes.size == $max_takes
    end
 
-   Enumerator.new do |enum|
-      moveList.each do |move|
-         ##puts 'MAX/MOVE: ', max_takes, move.takes
-         if move.takes.size == max_takes then
-            enum.yield move
-         end
-      end
-   end
-end   # gen_moves ============================================
+   return result
+end # searchCaptures
 
 def self.hasCapture(pos)     # PUBLIC
    # Returns true if capture for white found for position else false.
    pos.board.each_with_index do | p, i|
-      next if not p.isupper?       # p == 'P' or p == 'K' 
-      type = gen_bmoves(pos.board, i)[1]
-      return true if type == :capture    # capture found
+      next if not p.isupper?
+      bcaptures = bcaptures_from_square(pos.board, i)
+      return true if bcaptures.size > 0
    end
    return false
-end   # hasCapture 
+end   # hasCapture
+
+def self.gen_moves(pos)       # PUBLIC
+   # Returns list of all legal moves of a board for player white (capital letters).
+   # Move is a named tuple with array of steps and array of takes
+   #
+   entry = $moveTable[pos.key()]
+   return entry if entry != nil
+
+   if hasCapture(pos) then
+      legalMoves = searchCaptures(pos.board)
+   else
+      legalMoves = basicMoves(pos.board)
+   end
+
+   $moveTable[pos.key()] = legalMoves
+   if $moveTable.size > $MOVETABLE_SIZE then
+      clearTable()
+      #$moveTable.shift   # removes an arbitrary (key,value) pair
+   end
+
+   return legalMoves
+end   # gen_moves ============================================
 
 def self.isLegal(pos, move)     # PUBLIC
    # Returns true if move for position is legal else false.
@@ -288,7 +294,7 @@ def self.isLegal(pos, move)     # PUBLIC
 end   # isLegal
 
 def self.match_move(pos, steps)
-   # Match array of steps with a legal move. 
+   # Match array of steps with a legal move.
    nsteps = steps.map do |k| k.to_i end     # to integer steps
 
    lmoves = gen_moves(pos)   # legal moves
@@ -309,40 +315,22 @@ def self.match_move(pos, steps)
    return nil
 end   # match_move
 
+def self.clearTable()
+   # Clear moveTable
+   $moveTable = Hash.new(nil)
+end
+
+def self.tableSize()
+   puts "moveTable entries: " + $moveTable.size.to_s
+end
+
 ###############################################################################
-def self.test1(pos, i)       # PUBLIC
-   gen_bmoves(pos.board, i)[0].each do |bmove|
-      puts bmove
-   end
-end
 
-def self.test2(pos)          # PUBLIC
-   move = Move.new([2,16], [11])
-   gen_extend_move(pos.board, move).each do |emove|
-      puts emove
-   end
-end
-
-def self.test3(pos,i)         # PUBLIC
-   gen_moves_of_square(pos.board, i).each do |move|
-      puts move
-   end
-   puts
-   gen_moves_of_board(pos.board).each do |move|
-      puts move
-   end
-   puts
-   puts 'Legal moves:'
-   gen_moves(pos).each do |move|
-      puts move
-   end
-end
-
-#############################################################################################
 def self.main
    puts
    puts "Started #{$0} but nothing to do; try mad100_run.rb "
    puts
+
 end
 
 if $0 == __FILE__
