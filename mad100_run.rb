@@ -317,6 +317,10 @@ def main
 
             puts "Time elapsed for test: " + (t1 - t0).inspect
 
+         when /^test1/
+            # *** test ***
+            Moves.tableSize()
+
          else
             puts "   Error (unkown command): " + comm
 
