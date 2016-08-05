@@ -179,7 +179,6 @@ def self.basicMoves(board)
          bcaptures_of_board = bcaptures_of_board + bcaptures
       else
          bmoves_of_board = bmoves_of_board + bmoves_from_square(board, i)
-         bcaptures_of_board = bcaptures_of_board + bcaptures
       end
    end
    if bcaptures_of_board.size > 0 then
