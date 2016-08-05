@@ -89,6 +89,7 @@ def main
             pos = Main.newPos(board)
             color = Run::WHITE            # WHITE / BLACK
             Search.set_tp( Hash.new(nil) )       # reset transposition table
+            Moves.clearTable()
             Play.mprint_pos(color, pos)
 
          when /^fen/
@@ -98,6 +99,7 @@ def main
             pos = Play.parseFEN(fen)     # module Play
             color = fen[0] == 'B' ? Run::BLACK : Run::WHITE
             Search.set_tp( Hash.new(nil) )       # reset transposition table
+            Moves.clearTable()
             Play.mprint_pos(color, pos)
 
          when /^eval/
