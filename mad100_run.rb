@@ -88,8 +88,8 @@ def main
 
             pos = Main.newPos(board)
             color = Run::WHITE            # WHITE / BLACK
-            Search.set_tp( Hash.new(nil) )       # reset transposition table
-            Moves.clearTable()
+            Search.clearSearchTables()    # clear transposition tables
+            Moves.clearTable()            # clear moveTable
             Play.mprint_pos(color, pos)
 
          when /^fen/
@@ -98,8 +98,8 @@ def main
             _, fen = comm.split
             pos = Play.parseFEN(fen)     # module Play
             color = fen[0] == 'B' ? Run::BLACK : Run::WHITE
-            Search.set_tp( Hash.new(nil) )       # reset transposition table
-            Moves.clearTable()
+            Search.clearSearchTables()    # clear transposition tables
+            Moves.clearTable()            # clear moveTable
             Play.mprint_pos(color, pos)
 
          when /^eval/
@@ -168,9 +168,9 @@ def main
                puts 'Best move: ' + Play.mrender_move(color, move)
             end
 
-         when /^pv/
+         when /^p/
             if comm.split.size == 1 then
-               stack.push 'pv >'    # do next move in PV
+               stack.push 'p >'    # do next move in PV
             elsif comm.split.size == 2 then
                _, action = comm.split
                if pv_list.size == 0 then
@@ -288,10 +288,10 @@ def main
             puts '| m       : let computer search and play a move  '
             puts '| m <move>: do move (format: 32-28, 16x27, etc)  '
             puts '|  '
-            puts '| pv: do moves of PV (principal variation) '
-            puts '|   pv >  : next move  '
-            puts '|   pv <  : previous move  '
-            puts '|   pv << : first position  '
+            puts '| p: do moves of PV (principal variation) '
+            puts '|   p >  : next move  '
+            puts '|   p <  : previous move  '
+            puts '|   p << : first position  '
             puts '|  '
             puts '| go: search methods for best move and PV generation  '
             puts '|   go    : method 1 > MTD-bi  '
@@ -302,25 +302,30 @@ def main
             puts '|_________________________________________________________________  '
             puts 
 
-         when /^test0/ 
-            # *** test Performance ***
+         when /^test0/
             # Most critical for speed is move generation, so we perform a test.
-            lstring = ''
+            # If no second argument, the moveTable is not disabled
+            # If second argument, the maxtimes is set to the second argument.
+            # Note that the speed depends on the position (number of legal moves)
+            maxtimes = 10000   # default
+
+            if comm.split.size == 1 then mt_disabled = false else mt_disabled = true end
+            if comm.split.size == 2 then maxtimes = comm.split[1].to_i end
 
             t0 = Time.now
-            for i in 1..3000
-               Moves.gen_moves(pos).each do |lmove|
-                  lstring += Play.mrender_move(color, lmove) + '  '
-               end
+            for i in 1..maxtimes
+               legalMoves =  Moves.gen_moves(pos)
+               if mt_disabled then Moves.clearTable() end
             end
             t1 = Time.now
 
-            puts "Time elapsed for test: " + (t1 - t0).inspect
+            puts "Time elapsed for move generation: " + (t1 - t0).to_s + "  Max times: " + maxtimes.to_s
 
          when /^test1/
             # *** test ***
             Moves.tableSize()
 
+         # +++++++++++++++++++++++++++++++++++++++++++++++++++
          else
             puts "   Error (unkown command): " + comm
 
