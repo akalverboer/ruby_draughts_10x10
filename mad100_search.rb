@@ -563,6 +563,13 @@ def self.book_searchMove(pos)
    end
 end
 
+def self.clearSearchTables()
+   # Removes all key-value pairs from the transposition tables.
+   @tp.clear
+   @tpf.clear
+   @tpab.clear
+end
+
 #############################################################################################
 def self.main
    puts
