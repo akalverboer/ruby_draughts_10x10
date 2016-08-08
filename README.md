@@ -46,3 +46,9 @@ By the way: for Ruby programmers it is not difficult to convert it to a 64 squar
 Tags
 ====
 draughts engine, Ruby language, MTD-bi search, alpha-beta pruning, fail soft, negamax, aspiration windows, null move heuristic,  opening book, quiescence search, iterative deepening, transposition table, principal variation, evaluation, piece square tables, FEN
+
+Links
+=====
+- [Ruby website](https://www.ruby-lang.org/en/)
+- [Chess programming](https://chessprogramming.wikispaces.com/)
+- [Wikipedia draughts](https://en.wikipedia.org/wiki/International_draughts)
