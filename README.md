@@ -13,8 +13,14 @@ Screenshot
 
 Run it!
 =======
-MAD100.rb is contained in five ruby files: mad100.rb, mad100_moves.rb, mad100_search.rb, mad100_play.rb and mad100_run.rb 
-Run it from the commandline with: *ruby mad100_play.rb*
+MAD100.rb is developed with Ruby 2.2.4 and is contained in five Ruby files:
+- mad100_run.rb
+- mad100.rb
+- mad100_moves.rb
+- mad100_search.rb
+- mad100_play.rb
+
+Run it from the commandline with: *ruby mad100_play.rb*  
 Answer with the command **h** for help.
 
 Features
@@ -22,7 +28,7 @@ Features
 1. Built around the simple, but deadly efficient MTD-bi search algorithm.
 2. Filled with game programming tricks for simpler and faster code.
 3. Easily adaptive evaluation function through Piece Square Tables.
-4. Uses standard Python collections and data structures for clarity and efficiency.
+4. Uses standard Ruby collections and data structures for clarity and efficiency.
 
 Limitations
 ===========
@@ -33,10 +39,10 @@ The evaluation in MAD100.rb is not very sophisticated. E.g. we don't distinguish
 
 Why MAD100?
 ===========
-The name MAD refers to the reverse of DAM: the dutch name for the king of draughts. 
-The number refers to the 100 squares of the board.
+The name MAD refers to the reverse of DAM: the dutch name for the king of draughts.  
+The number refers to the 100 squares of the board.  
 By the way: for Ruby programmers it is not difficult to convert it to a 64 squares version.
 
 Tags
 ====
-draughts engine, MTD-bi search, alpha-beta pruning, fail soft, negamax, aspiration windows, null move heuristic,  opening book, quiescence search, iterative deepening, transposition table, principal variation, evaluation, piece square tables, FEN
+draughts engine, Ruby language, MTD-bi search, alpha-beta pruning, fail soft, negamax, aspiration windows, null move heuristic,  opening book, quiescence search, iterative deepening, transposition table, principal variation, evaluation, piece square tables, FEN
